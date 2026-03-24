@@ -62,7 +62,7 @@ Run `python game_cli.py help` to see all available commands.
 **Available commands:**
  
 | Command | Algorithm | Phase | Player |
-|---|---|---|---|---|
+|---|---|---|---|
 | `MiniMaxOpening` | MiniMax | Opening | White |
 | `MiniMaxGame` | MiniMax | Midgame/Endgame | White | 
 | `ABOpening` | Alpha-Beta | Opening | White | 
