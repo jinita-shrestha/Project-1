@@ -12,26 +12,27 @@ BG_COLOR       = (30, 30, 38)
 BOARD_BG       = (45, 42, 52)
 LINE_COLOR     = (120, 115, 130)
 GRID_DOT       = (80, 75, 90)
-
+ 
 WHITE_PIECE    = (240, 235, 220)
 WHITE_OUTLINE  = (200, 195, 180)
 BLACK_PIECE    = (35, 35, 45)
 BLACK_OUTLINE  = (90, 85, 100)
-
+ 
 HIGHLIGHT      = (100, 220, 180)
 HIGHLIGHT_DIM  = (70, 180, 150)
 SELECTED       = (255, 200, 80)
 REMOVABLE      = (220, 70, 70)
-
+ 
 TEXT_COLOR     = (220, 215, 210)
 TEXT_DIM       = (140, 135, 145)
 LABEL_COLOR    = (190, 185, 200)
+HINT_COLOR     = (160, 155, 170)
 ACCENT         = (100, 220, 180)
 WARNING        = (220, 70, 70)
-
+ 
 # ─── LAYOUT ───
 WINDOW_W = 900
-WINDOW_H = 850
+WINDOW_H = 780
 BOARD_TOP = 90
 BOARD_SIZE = 480
 PIECE_RADIUS = 19
@@ -75,7 +76,7 @@ class GUI:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WINDOW_W, WINDOW_H))
-        pygame.display.set_caption("Nine Men's Morris - Variant E")
+        pygame.display.set_caption("Nine Men's Morris - Group 10: Project 1")
         self.clock = pygame.time.Clock()
         self.game = Game()
         self.hovered_pos = None
@@ -154,7 +155,7 @@ class GUI:
 
     def _draw_header(self):
         title = self.font_title.render("Nine Men's Morris", True, TEXT_COLOR)
-        subtitle = self.font_small.render("VARIANT  E", True, TEXT_DIM)
+        subtitle = self.font_small.render("Group 10: Project 1", True, TEXT_DIM)
         self.screen.blit(title, (30, 18))
         self.screen.blit(subtitle, (32, 52))
 
@@ -301,63 +302,59 @@ class GUI:
         else:
             msg = self.font_msg.render(self.game.message, True, TEXT_COLOR)
         self.screen.blit(msg, (WINDOW_W // 2 - msg.get_width() // 2, y))
-        y += 36
-
+        y += 32
+ 
         # Piece counts
         w_count = count_pieces(Piece.WHITE, self.game.board)
         b_count = count_pieces(Piece.BLACK, self.game.board)
         w_remaining = 9 - self.game.white_placed
         b_remaining = 9 - self.game.black_placed
-
+ 
         info_left = f"White: {w_count} on board"
         if self.game.is_opening and w_remaining > 0:
             info_left += f"  ({w_remaining} to place)"
         info_right = f"Black: {b_count} on board"
         if self.game.is_opening and b_remaining > 0:
             info_right += f"  ({b_remaining} to place)"
-
+ 
         # White info
         pygame.draw.circle(self.screen, WHITE_PIECE, (80, y + 8), 8)
         pygame.draw.circle(self.screen, WHITE_OUTLINE, (80, y + 8), 8, 1)
         txt = self.font_info.render(info_left, True, TEXT_DIM)
         self.screen.blit(txt, (95, y))
-
+ 
         # Black info
         pygame.draw.circle(self.screen, BLACK_PIECE, (WINDOW_W - 350, y + 8), 8)
         pygame.draw.circle(self.screen, BLACK_OUTLINE, (WINDOW_W - 350, y + 8), 8, 1)
         txt = self.font_info.render(info_right, True, TEXT_DIM)
         self.screen.blit(txt, (WINDOW_W - 335, y))
-        y += 30
-
-        # Phase
+        y += 26
+ 
+        # Phase and board string on same row
         phase_name = "Opening" if self.game.is_opening else "Midgame"
         if not self.game.is_opening and (w_count == 3 or b_count == 3):
             phase_name = "Endgame"
-        phase_txt = self.font_small.render(f"Phase: {phase_name}", True, TEXT_DIM)
-        self.screen.blit(phase_txt, (WINDOW_W // 2 - phase_txt.get_width() // 2, y))
-        y += 22
-
-        # Board string
         board_str = ''.join(p.value for p in self.game.board)
-        bs_txt = self.font_small.render(f"Board: {board_str}", True, TEXT_DIM)
-        self.screen.blit(bs_txt, (WINDOW_W // 2 - bs_txt.get_width() // 2, y))
-
-        # Controls hint (pinned to bottom)
-        hint = "Left-click: act  |  Right-click/Esc: deselect  |  R: reset"
-        hint_txt = self.font_small.render(hint, True, (80, 78, 90))
-        self.screen.blit(hint_txt, (WINDOW_W // 2 - hint_txt.get_width() // 2, WINDOW_H - 28))
-
+        status_txt = self.font_small.render(f"Phase: {phase_name}    Board: {board_str}", True, TEXT_DIM)
+        self.screen.blit(status_txt, (WINDOW_W // 2 - status_txt.get_width() // 2, y))
+        y += 24
+ 
+        # Controls hint
+        hint = "Left-click: Select  |  Right-click/Esc: Deselect  |  R: Reset"
+        hint_txt = self.font_small.render(hint, True, HINT_COLOR)
+        self.screen.blit(hint_txt, (WINDOW_W // 2 - hint_txt.get_width() // 2, y))
+ 
     def _draw_reset_button(self):
         rect = self._reset_button_rect()
         mx, my = pygame.mouse.get_pos()
         hovered = rect.collidepoint(mx, my)
-
+ 
         color = HIGHLIGHT if hovered else TEXT_DIM
         pygame.draw.rect(self.screen, color, rect, 2, border_radius=6)
         txt = self.font_btn.render("New Game", True, color)
         self.screen.blit(txt, (rect.x + rect.w // 2 - txt.get_width() // 2,
                                rect.y + rect.h // 2 - txt.get_height() // 2))
-
+        
 
 def main():
     gui = GUI()
