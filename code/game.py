@@ -145,17 +145,61 @@ def get_possible_moves(pos: int, board: List[Piece], can_hop: bool) -> List[int]
         return [i for i, piece in enumerate(board) if piece == Piece.EMPTY]
     return [neighbor for neighbor in NEIGHBORS[pos] if board[neighbor] == Piece.EMPTY]
 
+# output print utils
 
 def board_to_string(board: List[Piece]) -> str:
     """Convert the board state to a string representation."""
-    return ' '.join(POSITIONS[i] + ':' + piece.name[0] for i, piece in enumerate(board))
+    return ''.join(p.value for p in board)
 
 
 def string_to_board(s: str) -> List[Piece]:
     """Convert a string representation back to a board state."""
     mapping = {'x': Piece.EMPTY, 'W': Piece.WHITE, 'B': Piece.BLACK}
-    return [mapping[p] for p in s.split()]
+    return [mapping[p] for p in s.strip()]
 
+def _cell(board: List[Piece], idx: int) -> str:
+    """Return a display character for a board position."""
+    p = board[idx]
+    if p == Piece.WHITE:
+        return 'W'
+    elif p == Piece.BLACK:
+        return 'B'
+    return '·'
+ 
+ 
+def format_board(board: List[Piece]) -> str:
+    """Return an ASCII representation of the board."""
+    c = lambda i: _cell(board, i)
+    return (
+        f"     a   b   c   d   e   f   g\n"
+        f"  6  {c(18)}-----------{c(19)}-----------{c(20)}\n"
+        f"     |           |           |\n"
+        f"  5  |   {c(15)}-------{c(16)}-------{c(17)}   |\n"
+        f"     |   |       |       |   |\n"
+        f"  4  |   |   {c(12)}---{c(13)}---{c(14)}   |   |\n"
+        f"     |   |   |       |   |   |\n"
+        f"  3  {c(6)}---{c(7)}---{c(8)}       {c(9)}---{c(10)}---{c(11)}\n"
+        f"     |   |   |       |   |   |\n"
+        f"  2  |   |   {c(4)}-------{c(5)}   |   |\n"
+        f"     |   | /           \ |   |\n"
+        f"  1  |   {c(2)}---------------{c(3)}   |\n"
+        f"     | /                   \ |\n"
+        f"  0  {c(0)}-----------------------{c(1)}"
+    )
+#     Columns:  A    B    C    D     E     F      G
+#     Row 7:  18(a6) --------- 19(d6) --------- 20(g6)
+#              |                 |                 |
+#     Row 6:   |    15(b5) --- 16(d5) --- 17(f5)   |
+#              |     |                       |     |
+#     Row 5:   |     |  12(c4)-13(d4)-14(e4) |     |
+#              |     |   |               |   |     |
+#     Row 4:  6(a3)-7(b3)-8(c3)      9(e3)-10(f3)-11(g3)
+#              |     |   |               |   |     |
+#     Row 3:   |     |   4(c2) ----  5(e2)   |     |
+#              |     |                       |     |
+#     Row 2:   |     2(b1) -------------  3(f1)    |
+#              |                                   |
+#     Row 1:   0(a0) -------------------------  1(g0)
 
 ## Game controller and logic
 

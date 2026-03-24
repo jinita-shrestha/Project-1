@@ -42,3 +42,32 @@ You win by either reducing your opponent to 2 pieces or blocking them from makin
 | Place / move / remove a piece | Left-click |
 | Cancel a selected piece | Right-click or Esc |
 | New game | Press R or click "New Game" |
+
+## CLI Search Commands 
+ 
+All AI commands are accessed through `game_cli.py`.
+ 
+**Usage:**
+```
+python game_cli.py <command> <input_file> <output_file> <depth>
+```
+ 
+**Example:**
+```
+python game_cli.py MiniMaxOpening board1.txt board2.txt 4
+```
+ 
+Run `python game_cli.py help` to see all available commands.
+ 
+**Available commands:**
+ 
+| Command | Algorithm | Phase | Player |
+|---|---|---|---|---|
+| `MiniMaxOpening` | MiniMax | Opening | White |
+| `MiniMaxGame` | MiniMax | Midgame/Endgame | White | 
+| `ABOpening` | Alpha-Beta | Opening | White | 
+| `ABGame` | Alpha-Beta | Midgame/Endgame | White |
+| `MiniMaxOpeningBlack` | MiniMax | Opening | Black |
+| `MiniMaxGameBlack` | MiniMax | Midgame/Endgame | Black |
+| `MiniMaxOpeningImproved` | MiniMax | Opening | White (improved) |
+| `MiniMaxGameImproved` | MiniMax | Midgame/Endgame | White (improved) | 
