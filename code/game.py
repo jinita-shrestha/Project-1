@@ -199,7 +199,7 @@ class Game:
         self.selected_piece: Optional[int] = None
         self.winner: Optional[Piece] = None
         self.message: str = "White's turn: Place a piece."
-        self.board_history: List[str] = []
+        self.board_history: dict = {}
  
     @property
     def is_opening(self) -> bool:
@@ -292,7 +292,16 @@ class Game:
         self._end_turn()
  
     def _end_turn(self):
-        self.board_history.append(board_to_string(self.board))
+        board_key = board_to_string(self.board)
+        self.board_history[board_key] = self.board_history.get(board_key, 0) + 1
+ 
+        # Check for repeated moves — the player who just moved is the repeater
+        if self.board_history[board_key] >= 3:
+            loser = self.current_player  # player who just moved
+            winner = opponent(loser)
+            self._declare_winner(winner, f"{player_name(loser)} repeated moves")
+            return
+        
         self.current_player = opponent(self.current_player)
         name = player_name(self.current_player)
  

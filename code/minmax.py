@@ -128,11 +128,20 @@ class SearchResult:
         self.board = board
         self.pos_evals = pos_evals
 
+# repeat penalty constants
+REPEAT_PENALTY_MAX = -9999
+REPEAT_PENALTY_MIN = 9999
 
+def board_key(board: List[Piece]) -> str:
+    """Generate a unique key for the board state for use in the history dictionary."""
+    return ''.join(str(piece.value) for piece in board)
 
 # Minmax Algo Part 1
 
-def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_gen_black, static_est) -> SearchResult:
+def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_gen_black, static_est, history: dict = None) -> SearchResult:
+    if history is None:
+        history = {}
+    
     if depth == 0:
         return SearchResult(static_est(board), board, 1)
     moves = move_gen_white(board) if is_max else move_gen_black(board)
@@ -142,22 +151,49 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
     total_evals = 0
     best_board = None
     if is_max:
-        best_move = float('-inf')
-        for move in moves:
-            result = minmax(move, depth - 1, False, move_gen_white, move_gen_black, static_est)
+        best_val = float('-inf')
+        for child in moves:
+            child_key = board_key(child)
+            child_count = history.get(child_key, 0) + 1
+ 
+            # Penalize repeated states — the mover loses
+            if child_count >= 3:
+                total_evals += 1
+                if REPEAT_PENALTY_MAX > best_val:
+                    best_val = REPEAT_PENALTY_MAX
+                    best_board = child
+                continue
+ 
+            child_history = {**history, child_key: child_count}
+            result = minmax(child, depth - 1, False,
+                             move_gen_white, move_gen_black,
+                             static_est, child_history)
             total_evals += result.pos_evals
-            if result.estimate > best_move:
-                best_move = result.estimate
-                best_board = move
+            if result.estimate > best_val:
+                best_val = result.estimate
+                best_board = child
     else:
-        best_move = float('inf')
-        for move in moves:
-            result = minmax(move, depth - 1, True, move_gen_white, move_gen_black, static_est)
+        best_val = float('inf')
+        for child in moves:
+            child_key = board_key(child)
+            child_count = history.get(child_key, 0) + 1
+ 
+            if child_count >= 3:
+                total_evals += 1
+                if REPEAT_PENALTY_MIN < best_val:
+                    best_val = REPEAT_PENALTY_MIN
+                    best_board = child
+                continue
+ 
+            child_history = {**history, child_key: child_count}
+            result = minmax(child, depth - 1, True,
+                             move_gen_white, move_gen_black,
+                             static_est, child_history)
             total_evals += result.pos_evals
-            if result.estimate < best_move:
-                best_move = result.estimate
-                best_board = move
-    return SearchResult(best_move, best_board, total_evals)
+            if result.estimate < best_val:
+                best_val = result.estimate
+                best_board = child
+    return SearchResult(best_val, best_board, total_evals)
 
 
 # Alpha-beta Pruning Part 2
@@ -165,67 +201,75 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
 def alphabeta(board: List[Piece], depth: int, is_max: bool,
               alpha: float, beta: float,
               move_gen_white, move_gen_black,
-              static_estimation) -> SearchResult:
+              static_estimation,
+              history: dict = None) -> SearchResult:
+
+    if history is None:
+        history = {}
 
     # Base case
     if depth == 0:
         return SearchResult(static_estimation(board), board, 1)
 
-    # Generate moves
     moves = move_gen_white(board) if is_max else move_gen_black(board)
-
     if not moves:
         return SearchResult(static_estimation(board), board, 1)
 
     total_evals = 0
     best_board = None
 
-    if is_max:  # WHITE (maximize)
+    if is_max:
         best_value = float('-inf')
-
         for move in moves:
+            child_key = board_key(move)
+            child_count = history.get(child_key, 0) + 1
+
+            if child_count >= 3:
+                total_evals += 1
+                if REPEAT_PENALTY_MAX > best_value:
+                    best_value = REPEAT_PENALTY_MAX
+                    best_board = move
+                continue
+
+            child_history = {**history, child_key: child_count}
             result = alphabeta(move, depth - 1, False,
                                alpha, beta,
                                move_gen_white, move_gen_black,
-                               static_estimation)
-
+                               static_estimation, child_history)
             total_evals += result.pos_evals
-
             if result.estimate > best_value:
                 best_value = result.estimate
                 best_board = move
-
-            # update alpha
             alpha = max(alpha, best_value)
-
-            # PRUNING
             if beta <= alpha:
                 break
-
         return SearchResult(best_value, best_board, total_evals)
 
-    else:  # BLACK (minimize)
+    else:
         best_value = float('inf')
-
         for move in moves:
+            child_key = board_key(move)
+            child_count = history.get(child_key, 0) + 1
+
+            if child_count >= 3:
+                total_evals += 1
+                if REPEAT_PENALTY_MIN < best_value:
+                    best_value = REPEAT_PENALTY_MIN
+                    best_board = move
+                continue
+
+            child_history = {**history, child_key: child_count}
             result = alphabeta(move, depth - 1, True,
                                alpha, beta,
                                move_gen_white, move_gen_black,
-                               static_estimation)
-
+                               static_estimation, child_history)
             total_evals += result.pos_evals
-
             if result.estimate < best_value:
                 best_value = result.estimate
                 best_board = move
-
-            # update beta
             beta = min(beta, best_value)
-
-            # PRUNING
             if beta <= alpha:
                 break
-
         return SearchResult(best_value, best_board, total_evals)
 
 # part 4 improved static estimation
