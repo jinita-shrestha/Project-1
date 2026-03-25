@@ -162,8 +162,71 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
 
 # Alpha-beta Pruning Part 2
 
-def alphabeta(board: List[Piece], depth: int, is_max: bool, alpha: float, beta: float, move_gen_white, move_gen_black, static_estimation) -> SearchResult:
-    raise NotImplementedError("Part 2 Alpha-Beta pruning not yet implemented")
+def alphabeta(board: List[Piece], depth: int, is_max: bool,
+              alpha: float, beta: float,
+              move_gen_white, move_gen_black,
+              static_estimation) -> SearchResult:
+
+    # Base case
+    if depth == 0:
+        return SearchResult(static_estimation(board), board, 1)
+
+    # Generate moves
+    moves = move_gen_white(board) if is_max else move_gen_black(board)
+
+    if not moves:
+        return SearchResult(static_estimation(board), board, 1)
+
+    total_evals = 0
+    best_board = None
+
+    if is_max:  # WHITE (maximize)
+        best_value = float('-inf')
+
+        for move in moves:
+            result = alphabeta(move, depth - 1, False,
+                               alpha, beta,
+                               move_gen_white, move_gen_black,
+                               static_estimation)
+
+            total_evals += result.pos_evals
+
+            if result.estimate > best_value:
+                best_value = result.estimate
+                best_board = move
+
+            # update alpha
+            alpha = max(alpha, best_value)
+
+            # PRUNING
+            if beta <= alpha:
+                break
+
+        return SearchResult(best_value, best_board, total_evals)
+
+    else:  # BLACK (minimize)
+        best_value = float('inf')
+
+        for move in moves:
+            result = alphabeta(move, depth - 1, True,
+                               alpha, beta,
+                               move_gen_white, move_gen_black,
+                               static_estimation)
+
+            total_evals += result.pos_evals
+
+            if result.estimate < best_value:
+                best_value = result.estimate
+                best_board = move
+
+            # update beta
+            beta = min(beta, best_value)
+
+            # PRUNING
+            if beta <= alpha:
+                break
+
+        return SearchResult(best_value, best_board, total_evals)
 
 # part 4 improved static estimation
 
