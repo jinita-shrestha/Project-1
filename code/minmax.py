@@ -36,8 +36,8 @@ def generate_move(board: List[Piece], player: Piece, phase: str) -> List[List[Pi
     """Generate all possible moves for the current board and phase."""
     rival = opponent(player)
     moves = []
-    for i in range(len(board)):
-        if phase == 'opening':
+    if phase == 'opening':
+        for i in range(len(board)):
             if board[i] != Piece.EMPTY:
                 continue
             new_board = board.copy()
@@ -46,22 +46,22 @@ def generate_move(board: List[Piece], player: Piece, phase: str) -> List[List[Pi
                 generate_remove(new_board, rival, moves)
             else:
                 moves.append(new_board)
-        else:
-            dest = NEIGHBORS if phase == 'midgame' else None
-            for i in range(len(board)):
-                if board[i] != player:
+    else:
+        dest = NEIGHBORS if phase == 'midgame' else None
+        for i in range(len(board)):
+            if board[i] != player:
+                continue
+            targets = dest[i] if dest else range(len(board))
+            for j in targets:
+                if board[j] != Piece.EMPTY:
                     continue
-                targets = dest[i] if dest else range(len(board))
-                for j in targets:
-                    if board[j] != Piece.EMPTY:
-                        continue
-                    new_board = board.copy()
-                    new_board[i] = Piece.EMPTY
-                    new_board[j] = player
-                    if close_mill(j, new_board):
-                        generate_remove(new_board, rival, moves)
-                    else:
-                        moves.append(new_board)
+                new_board = board.copy()
+                new_board[i] = Piece.EMPTY
+                new_board[j] = player
+                if close_mill(j, new_board):
+                    generate_remove(new_board, rival, moves)
+                else:
+                    moves.append(new_board)
     return moves
 
 def is_opening(board: List[Piece]) -> bool:
