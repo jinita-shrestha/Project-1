@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from game import (
-    Piece, NEIGHBORS, MILLS_FOR_POSITION,
+    MILLS, Piece, NEIGHBORS, MILLS_FOR_POSITION,
     close_mill, count_pieces, opponent
 )
 
@@ -275,12 +275,12 @@ def alphabeta(board: List[Piece], depth: int, is_max: bool,
 # part 4 improved static estimation
 def count_potential_mills(board, player):
     count = 0
-    for mills in MILLS_FOR_POSITION.values():
-        for m in mills:
-            pieces = [board[p] for p in m]
-            if pieces.count(player) == 2 and pieces.count(Piece.EMPTY) == 1:
-                count += 1
+    for mill in MILLS:
+        pieces = [board[p] for p in mill]
+        if pieces.count(player) == 2 and pieces.count(Piece.EMPTY) == 1:
+            count += 1
     return count
+
 def static_estimation_opening_improved(board: List[Piece]) -> int:
     w = count_pieces(Piece.WHITE, board)
     b = count_pieces(Piece.BLACK, board)
