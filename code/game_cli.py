@@ -7,7 +7,9 @@ from minmax import (
     minmax, alphabeta, is_opening, validate_turn,
     generate_white, generate_black,
     static_estimation_open, static_estimation_mid_end,
-    static_estimation_mid_end, static_estimation_open
+    static_estimation_mid_end, static_estimation_open, 
+     static_estimation_opening_improved, 
+     static_estimation_midgame_endgame_improved
 )
 # cli defs
 
@@ -53,12 +55,14 @@ COMMANDS = {
     'MiniMaxOpeningImproved': (
         'minimax', True,
         generate_white, generate_black,
-        static_estimation_open, 'MINIMAX', True,
+        static_estimation_opening_improved,
+        'MINIMAX', True,
     ),
     'MiniMaxGameImproved': (
         'minimax', True,
         generate_white, generate_black,
-        static_estimation_mid_end, 'MINIMAX', False,
+        static_estimation_midgame_endgame_improved,
+        'MINIMAX', False,
     ),
 
 }

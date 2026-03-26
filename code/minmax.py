@@ -273,10 +273,37 @@ def alphabeta(board: List[Piece], depth: int, is_max: bool,
         return SearchResult(best_value, best_board, total_evals)
 
 # part 4 improved static estimation
-
+def count_potential_mills(board, player):
+    count = 0
+    for mills in MILLS_FOR_POSITION.values():
+        for m in mills:
+            pieces = [board[p] for p in m]
+            if pieces.count(player) == 2 and pieces.count(Piece.EMPTY) == 1:
+                count += 1
+    return count
 def static_estimation_opening_improved(board: List[Piece]) -> int:
-    raise NotImplementedError("Part 4 Improved opening estimation not yet implemented")
- 
+    w = count_pieces(Piece.WHITE, board)
+    b = count_pieces(Piece.BLACK, board)
+
+    w_potential = count_potential_mills(board, Piece.WHITE)
+    b_potential = count_potential_mills(board, Piece.BLACK)
+
+    return (w - b) + (w_potential - b_potential)
  
 def static_estimation_midgame_endgame_improved(board: List[Piece]) -> int:
-    raise NotImplementedError("Part 4 Improved midgame/endgame estimation not yet implemented")
+    w = count_pieces(Piece.WHITE, board)
+    b = count_pieces(Piece.BLACK, board)
+
+    black_moves = len(generate_black(board))
+
+    w_potential = count_potential_mills(board, Piece.WHITE)
+    b_potential = count_potential_mills(board, Piece.BLACK)
+
+    if b <= 2:
+        return 10000
+    elif w <= 2:
+        return -10000
+    elif black_moves == 0:
+        return 10000
+
+    return 1000 * (w - b) - black_moves + 5 * (w_potential - b_potential)
