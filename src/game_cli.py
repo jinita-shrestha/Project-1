@@ -5,12 +5,21 @@ import sys
 from game import board_to_string, string_to_board, format_board, Piece
 from minmax import (
     minmax, alphabeta, is_opening, validate_turn,
-    generate_white, generate_black,
-    static_estimation_open, static_estimation_mid_end,
-    static_estimation_mid_end, static_estimation_open, 
-     static_estimation_opening_improved, 
-     static_estimation_midgame_endgame_improved
+    generate_white, generate_black, generate_move,
+    static_estimation, static_estimation_mid_end,
+    static_estimation_improved, static_estimation_midgame_endgame_improved,
+    count_pieces
 )
+
+# Helper funcs to force opening/midgame/endgame move generation for testing
+def gen_white_game(board):
+    if count_pieces(Piece.WHITE, board) <= 2: return []
+    return generate_move(board, Piece.WHITE, 'endgame' if count_pieces(Piece.WHITE, board) == 3 else 'midgame')
+
+def gen_black_game(board):
+    if count_pieces(Piece.BLACK, board) <= 2: return []
+    return generate_move(board, Piece.BLACK, 'endgame' if count_pieces(Piece.BLACK, board) == 3 else 'midgame')
+
 # cli defs
 
 COMMANDS = {
@@ -19,11 +28,11 @@ COMMANDS = {
     'MiniMaxOpening': (
         'minimax', True,
         generate_white, generate_black,
-        static_estimation_open, 'MINIMAX', True,
+        static_estimation, 'MINIMAX', True,
     ),
     'MiniMaxGame': (
         'minimax', True,
-        generate_white, generate_black,
+        gen_white_game, gen_black_game,
         static_estimation_mid_end, 'MINIMAX', False,
     ),
  
@@ -31,11 +40,11 @@ COMMANDS = {
     'ABOpening': (
         'alphabeta', True,
         generate_white, generate_black,
-        static_estimation_open, 'AB', True,
+        static_estimation, 'AB', True,
     ),
     'ABGame': (
         'alphabeta', True,
-        generate_white, generate_black,
+        gen_white_game, gen_black_game,
         static_estimation_mid_end, 'AB', False,
     ),
  
@@ -43,11 +52,11 @@ COMMANDS = {
     'MiniMaxOpeningBlack': (
         'minimax', False,
         generate_white, generate_black,
-        static_estimation_open, 'MINIMAX', True,
+        static_estimation, 'MINIMAX', True,
     ),
     'MiniMaxGameBlack': (
         'minimax', False,
-        generate_white, generate_black,
+        gen_white_game, gen_black_game,
         static_estimation_mid_end, 'MINIMAX', False,
     ),
  
@@ -55,12 +64,12 @@ COMMANDS = {
     'MiniMaxOpeningImproved': (
         'minimax', True,
         generate_white, generate_black,
-        static_estimation_opening_improved,
+        static_estimation_improved,
         'MINIMAX', True,
     ),
     'MiniMaxGameImproved': (
         'minimax', True,
-        generate_white, generate_black,
+        gen_white_game, gen_black_game,
         static_estimation_midgame_endgame_improved,
         'MINIMAX', False,
     ),

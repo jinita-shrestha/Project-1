@@ -66,39 +66,60 @@ def generate_move(board: List[Piece], player: Piece, phase: str) -> List[List[Pi
 
 def is_opening(board: List[Piece]) -> bool:
     """Check if the board is in the opening phase."""
-    return count_pieces(Piece.WHITE, board) < 9 or count_pieces(Piece.BLACK, board) < 9        
+    return count_pieces(Piece.WHITE, board) < 9 and count_pieces(Piece.BLACK, board) < 9        
 
 def get_phase(board: List[Piece], player: Piece) -> str:
-    """Determine the phase of the game based on the board state."""
-    return 'endgame' if count_pieces(player, board) ==3 else 'opening' if count_pieces(player, board) < 9 else 'midgame'
+    rival = opponent(player)
+    n = count_pieces(player, board)
+    rival_n = count_pieces(rival, board)
+    still_placing = n < 9 and rival_n < 9
+    
+    if still_placing:
+        return 'opening'
+    if n == 3:
+        return 'endgame'
+    return 'midgame'
 
 def generate_white(board: List[Piece]) -> List[List[Piece]]:
     """Generate all possible opening/midgame/endgame moves for white."""
+    if not is_opening(board) and count_pieces(Piece.WHITE, board) <= 2:
+        return []
     return generate_move(board, Piece.WHITE, get_phase(board, Piece.WHITE))
 
 def generate_black(board: List[Piece]) -> List[List[Piece]]:
     """Generate all possible opening/midgame/endgame moves for black."""
+    if not is_opening(board) and count_pieces(Piece.BLACK, board) <= 2:
+        return []
     return generate_move(board, Piece.BLACK, get_phase(board, Piece.BLACK))
 
 def validate_turn(board: List[Piece], player: Piece) -> tuple:
-    """Validate if it's the correct player's turn based on the board state."""
+    """Validate board state and ensure it's the correct player's turn."""
+    if len(board) != 21:
+        return False, f"Board must have exactly 21 positions got {len(board)}"
+
     white_count = count_pieces(Piece.WHITE, board)
     black_count = count_pieces(Piece.BLACK, board)
+
+    if white_count > 9 or black_count > 9:
+        return False, f"Too many pieces on the board: white={white_count}, black={black_count}"
+    
     if white_count == 0 and black_count == 0:
         if player == Piece.BLACK:
             return False, "Empty board, white goes first"
         return True, ""
     
-    if is_opening(board):
-        if white_count == black_count:
-            if player == Piece.BLACK:
-                return False, f"Invalid board state: {white_count} white pieces and {black_count} black pieces, expected white to move"
-        elif white_count > black_count:
-            if player == Piece.WHITE:
-                return False, f"Invalid board state: {white_count} white pieces and {black_count} black pieces, expected black to move"
-        else:
-            if player == Piece.BLACK:
-                return False, f"Invalid board state: {white_count} white pieces and {black_count} black pieces, expected white to move"
+    if white_count == 0 and black_count > 0:
+        return False, "Invalid board: Black pieces without any white pieces. White goes first."
+    
+    # validate edge cases that shouldnt be possible in a normal game but could be in an input file
+    total = white_count + black_count
+    if is_opening(board) and total <= 4 and white_count <= 2 and black_count <= 2:
+        if white_count == black_count and player == Piece.BLACK:
+            return False, "In the opening phase, white goes first and players alternate placing pieces."
+        elif white_count == black_count + 1 and player == Piece.WHITE:
+            return False, "In the opening phase, white goes first and players alternate placing pieces."
+        elif black_count > white_count:
+            return False, "Invalid board: Black has more pieces than white before mills are closed. White goes first."
     return True, ""
 
 # Static Est Part 1
@@ -111,7 +132,7 @@ def static_estimation_mid_end(board: List[Piece]) -> int:
     """Static estimation for the midgame/endgame phase."""
     white_count = count_pieces(Piece.WHITE, board)
     black_count = count_pieces(Piece.BLACK, board)
-    black_moves = len(generate_black(board))
+    black_moves = len(generate_move(board, Piece.BLACK, 'endgame' if count_pieces(Piece.BLACK, board) == 3 else 'midgame'))
     if black_count <= 2:
         return 10000
     elif white_count <= 2:
@@ -120,6 +141,14 @@ def static_estimation_mid_end(board: List[Piece]) -> int:
         return 10000
     else:
         return 1000 * (white_count - black_count) - black_moves
+    
+def static_estimation(board: List[Piece]) -> int:
+    """General static estimation function that chooses the appropriate estimation based on the phase."""
+    if is_opening(board):
+        return static_estimation_open(board)
+    else:
+        return static_estimation_mid_end(board)
+
     
 # Search Result Class
 class SearchResult:
@@ -138,15 +167,30 @@ def board_key(board: List[Piece]) -> str:
 
 # Minmax Algo Part 1
 
-def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_gen_black, static_est, history: dict = None) -> SearchResult:
+def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_gen_black, static_est, history: dict = None, max_depth: int = None) -> SearchResult:
     if history is None:
         history = {}
+    if max_depth is None:
+        max_depth = depth
     
     if depth == 0:
-        return SearchResult(static_est(board), board, 1)
+        est = static_est(board)
+        depth_taken = max_depth - depth
+        if est >= 10000:
+            est -= depth_taken
+        elif est <= -10000:
+            est += depth_taken
+        return SearchResult(est, board, 1)
+    
     moves = move_gen_white(board) if is_max else move_gen_black(board)
     if not moves:
-        return SearchResult(static_est(board), board, 1)
+        est = static_est(board)
+        depth_taken = max_depth - depth
+        if est >= 10000:
+            est -= depth_taken
+        elif est <= -10000:
+            est += depth_taken
+        return SearchResult(est, board, 1)
     
     total_evals = 0
     best_board = None
@@ -167,7 +211,7 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
             child_history = {**history, child_key: child_count}
             result = minmax(child, depth - 1, False,
                              move_gen_white, move_gen_black,
-                             static_est, child_history)
+                             static_est, child_history, max_depth)
             total_evals += result.pos_evals
             if result.estimate > best_val:
                 best_val = result.estimate
@@ -188,7 +232,7 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
             child_history = {**history, child_key: child_count}
             result = minmax(child, depth - 1, True,
                              move_gen_white, move_gen_black,
-                             static_est, child_history)
+                             static_est, child_history, max_depth)
             total_evals += result.pos_evals
             if result.estimate < best_val:
                 best_val = result.estimate
@@ -201,19 +245,33 @@ def minmax(board: List[Piece], depth: int, is_max: bool, move_gen_white, move_ge
 def alphabeta(board: List[Piece], depth: int, is_max: bool,
               alpha: float, beta: float,
               move_gen_white, move_gen_black,
-              static_estimation,
-              history: dict = None) -> SearchResult:
+              static_est,
+              history: dict = None, max_depth: int = None) -> SearchResult:
 
     if history is None:
         history = {}
+    if max_depth is None:
+        max_depth = depth
 
     # Base case
     if depth == 0:
-        return SearchResult(static_estimation(board), board, 1)
+        est = static_est(board)
+        depth_taken = max_depth - depth
+        if est >= 10000:
+            est -= depth_taken
+        elif est <= -10000:
+            est += depth_taken
+        return SearchResult(est, board, 1)
 
     moves = move_gen_white(board) if is_max else move_gen_black(board)
     if not moves:
-        return SearchResult(static_estimation(board), board, 1)
+        est = static_est(board)
+        depth_taken = max_depth - depth
+        if est >= 10000:
+            est -= depth_taken
+        elif est <= -10000:
+            est += depth_taken
+        return SearchResult(est, board, 1)
 
     total_evals = 0
     best_board = None
@@ -235,7 +293,7 @@ def alphabeta(board: List[Piece], depth: int, is_max: bool,
             result = alphabeta(move, depth - 1, False,
                                alpha, beta,
                                move_gen_white, move_gen_black,
-                               static_estimation, child_history)
+                               static_est, child_history, max_depth)
             total_evals += result.pos_evals
             if result.estimate > best_value:
                 best_value = result.estimate
@@ -262,7 +320,7 @@ def alphabeta(board: List[Piece], depth: int, is_max: bool,
             result = alphabeta(move, depth - 1, True,
                                alpha, beta,
                                move_gen_white, move_gen_black,
-                               static_estimation, child_history)
+                               static_est, child_history, max_depth)
             total_evals += result.pos_evals
             if result.estimate < best_value:
                 best_value = result.estimate
@@ -294,7 +352,7 @@ def static_estimation_midgame_endgame_improved(board: List[Piece]) -> int:
     w = count_pieces(Piece.WHITE, board)
     b = count_pieces(Piece.BLACK, board)
 
-    black_moves = len(generate_black(board))
+    black_moves = len(generate_move(board, Piece.BLACK, 'endgame' if count_pieces(Piece.BLACK, board) == 3 else 'midgame'))
 
     w_potential = count_potential_mills(board, Piece.WHITE)
     b_potential = count_potential_mills(board, Piece.BLACK)
@@ -307,3 +365,9 @@ def static_estimation_midgame_endgame_improved(board: List[Piece]) -> int:
         return 10000
 
     return 1000 * (w - b) - black_moves + 5 * (w_potential - b_potential)
+
+def static_estimation_improved(board: List[Piece]) -> int:
+    if is_opening(board):
+        return static_estimation_opening_improved(board)
+    else:
+        return static_estimation_midgame_endgame_improved(board)
